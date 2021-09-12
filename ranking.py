@@ -1,5 +1,5 @@
+from fastapi import FastAPI, HTTPException
 from botocore.client import Config
-from fastapi import FastAPI
 
 import tempfile
 import pickle
@@ -37,7 +37,7 @@ def get_data():
         print("ERROR: unable to connect to bucket")
       raise Exception('unable to connect to bucket')
 
-  return pickle.loads(s3_client.get_object(Bucket=MINIO_BUCKET, Key='ranking.list')['Body'].read())
+  return pickle.loads(s3_client.get_object(Bucket=MINIO_BUCKET, Key=os.environ.get("APP_RANKING", "demoapp")+'.ranking.list')['Body'].read())
 
 def set_data(ranking):
   global MINIO_BUCKET, s3_client
@@ -65,28 +65,29 @@ def set_data(ranking):
   return s3_client.put_object(
                   Body=tmp_ranking,
                   Bucket=MINIO_BUCKET,
-                  Key='ranking.list'
+                  Key=os.environ.get("APP_RANKING", "demoapp")+'.ranking.list'
                 )  
 
 app = FastAPI()
 
 @app.get("/health")
 async def root():
-    return { "status": "ready"}
+    return { "status": "ready" }
 
-@app.get("/auth_endpoint")
-async def root():
-    return {"auth": os.environ.get("AUTH_TOKEN", "AUTH")}
-
-@app.get("/ranking")
-async def get_ranking():
+@app.get("/{auth}/ranking")
+async def get_ranking(auth: str):
+  if auth != os.environ.get("AUTH_TOKEN", "TOKEN"):
+    raise HTTPException(status_code=404)
   try:
     return get_data()
   except:
     return []
 
-@app.get("/ranking/{player}/{score}")
-async def set_ranking(player, score):
+@app.get("/{auth}/ranking/{player}/{score}")
+async def set_ranking(auth: str, player: str, score: str):
+  if auth != os.environ.get("AUTH_TOKEN", "TOKEN"):
+    raise HTTPException(status_code=404)
+  
   try:
     ranking = get_data()
   except:
