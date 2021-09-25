@@ -40,4 +40,4 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          tags: jordiprats/ranking:${{ steps.vars.outputs.tag }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/ranking:${{ steps.vars.outputs.tag }}
