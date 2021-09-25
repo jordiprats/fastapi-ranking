@@ -17,8 +17,6 @@ s3_client = None
 def init_s3_client():
   global s3_client
 
-
-
 def get_data():
   global MINIO_BUCKET, s3_client, ranking
   if not s3_client:
@@ -74,9 +72,16 @@ app = FastAPI()
 async def root():
     return { "status": "ready" }
 
+@app.get("/auth/${client_token}")
+async def root(client_token):
+  if os.environ.get("APP_TOKEN", "APP_TOKEN") == client_token:
+    return { "request_token": os.environ.get("REQ_TOKEN", "REQ_TOKEN") }
+  else:
+    raise HTTPException(status_code=401, detail="Invalid token")
+
 @app.get("/{auth}/ranking")
 async def get_ranking(auth: str):
-  if auth != os.environ.get("AUTH_TOKEN", "TOKEN"):
+  if auth != os.environ.get("REQ_TOKEN", "REQ_TOKEN"):
     raise HTTPException(status_code=404)
   try:
     return get_data()
@@ -85,7 +90,7 @@ async def get_ranking(auth: str):
 
 @app.get("/{auth}/ranking/{player}/{score}")
 async def set_ranking(auth: str, player: str, score: str):
-  if auth != os.environ.get("AUTH_TOKEN", "TOKEN"):
+  if auth != os.environ.get("REQ_TOKEN", "REQ_TOKEN"):
     raise HTTPException(status_code=404)
   
   try:
